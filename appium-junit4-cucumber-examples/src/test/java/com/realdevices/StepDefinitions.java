@@ -12,6 +12,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
 
 import static org.junit.Assert.assertEquals;
 
@@ -19,8 +20,8 @@ public class StepDefinitions {
     private IOSDriver driver;
     private WebDriverWait wait;
     public SauceTestWatcher resultReportingTestWatcher = new SauceTestWatcher();
-    private String SAUCE_EU_URL = "https://ondemand.eu-central-1.saucelabs.com/wd/hub";
-    private String SAUCE_US_URL = "https://ondemand.us-west-1.saucelabs.com:443/wd/hub";
+    private final String SAUCE_EU_URL = "https://ondemand.eu-central-1.saucelabs.com/wd/hub";
+    private final String SAUCE_US_URL = "https://ondemand.us-west-1.saucelabs.com/wd/hub";
     public static final String region = System.getProperty("region", "us");
 
     @io.cucumber.java.Before
@@ -40,7 +41,7 @@ public class StepDefinitions {
         }
 
         capabilities.setCapability("platformName", "iOS");
-        capabilities.setCapability("automationName", "XCuiTest");
+        capabilities.setCapability("automationName", "XCUITest");
         //Allocate any avilable iPhone device with version 14
         capabilities.setCapability("appium:deviceName", "iPhone.*");
         capabilities.setCapability("appium:platformVersion", "14");
@@ -57,13 +58,32 @@ public class StepDefinitions {
 
         driver = new IOSDriver(url, capabilities);
 
-        //Setting the driver so that we can report results
         resultReportingTestWatcher.setDriver(driver);
     }
 
     @io.cucumber.java.After
     public void tearDown(Scenario scenario){
-        driver.quit();
+        try {
+            if (scenario.isFailed()) {
+                if (driver != null) {
+                    System.out.println("Test Failed!");
+                    driver.executeScript("sauce:job-result=failed");
+                    driver.quit();
+                }
+
+            } else {
+                if (driver != null) {
+                    System.out.println("Test Passed!");
+                    driver.executeScript("sauce:job-result=passed");
+                    driver.quit();
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            System.out.println("Release driver");
+            driver.quit();
+        }
     }
 
     @Given("I open the iOS application")
@@ -78,7 +98,7 @@ public class StepDefinitions {
     }
     public Boolean isDisplayed(By locator, long timeoutInSeconds) {
         try {
-            WebDriverWait wait = new WebDriverWait(driver, timeoutInSeconds);
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds));
             wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
         } catch (org.openqa.selenium.TimeoutException exception) {
             return false;

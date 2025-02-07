@@ -1,0 +1,39 @@
+name: Real Devices
+
+on:
+  schedule:
+    - cron: '35 20 * * *'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/appium/**'
+      - 'pom.*'
+  pull_request:
+    paths:
+      - '**/appium/**'
+      - 'pom.*'
+
+env:
+  SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+  SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: 11
+          distribution: "temurin"
+      - name: RDC Native App Android
+        working-directory: ./appium/appium-app/appium-app-examples
+        run: mvn test -Dtest=AndroidNativeAppTest -Dregion=eu
+      - name: RDC Native App IOS
+        working-directory: ./appium/appium-app/appium-app-examples
+        run: mvn test -Dtest=IOSNativeAppTest -Dregion=eu
